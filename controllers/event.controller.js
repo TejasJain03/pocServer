@@ -33,11 +33,9 @@ const getEvents = async (req, res) => {
             filter.startDate = {};
 
             if (startDate) {
-                const parsedStartDate = new Date(startDate);
+                const parsedStartDate = new Date(startDate); // Defaults to 00:00:00
                 if (Number.isNaN(parsedStartDate.getTime())) {
-                    return res.status(400).json({
-                        message: 'Invalid startDate. Use a valid date format (e.g., 2026-05-01).'
-                    });
+                    return res.status(400).json({ message: 'Invalid startDate.' });
                 }
                 filter.startDate.$gte = parsedStartDate;
             }
@@ -45,10 +43,12 @@ const getEvents = async (req, res) => {
             if (endDate) {
                 const parsedEndDate = new Date(endDate);
                 if (Number.isNaN(parsedEndDate.getTime())) {
-                    return res.status(400).json({
-                        message: 'Invalid endDate. Use a valid date format (e.g., 2026-05-31).'
-                    });
+                    return res.status(400).json({ message: 'Invalid endDate.' });
                 }
+
+                // ADJUSTMENT: Set to the end of the day (23:59:59.999)
+                parsedEndDate.setUTCHours(23, 59, 59, 999);
+
                 filter.startDate.$lte = parsedEndDate;
             }
         }

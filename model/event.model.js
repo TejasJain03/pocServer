@@ -21,6 +21,10 @@ const eventSchema = new mongoose.Schema({
         required: [true, 'Location is required'],
         trim: true
     },
+    isVirtual: {
+        type: Boolean,
+        default: false
+    },
     description: {
         type: String,
         required: false,
