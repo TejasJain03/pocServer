@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 
 const connectDB = require('./db/connectDB');
 const eventRoutes = require('./routes/event.routes');
+const bookingRoutes = require('./routes/booking.routes');
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use('/api/events', eventRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 app.get('/', (req, res) => {
     res.status(200).json({ message: 'Server is running' });
