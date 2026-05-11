@@ -76,7 +76,41 @@ const updateBookingStatus = async (req, res) => {
     }
 };
 
+const getBookingDetails = async (req, res) => {
+    try {
+        const { bookingCode } = req.params;
+
+        const booking = await Booking.findOne(
+            { bookingCode: bookingCode.toUpperCase() }
+        ).populate('eventId', 'name startDate');
+
+        if (!booking) {
+            return res.status(404).json({
+                message: 'Booking not found'
+            });
+        }
+
+        return res.status(200).json({
+            message: 'Booking details fetched successfully',
+            data: {
+                bookingCode: booking.bookingCode,
+                paymentAmount: booking.finalAmountPaid,
+                eventName: booking.eventId?.name || 'N/A',
+                eventDate: booking.eventId?.startDate || 'N/A'
+            }
+        });
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({
+            message: 'Failed to fetch booking details',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     createBooking,
-    updateBookingStatus
+    updateBookingStatus,
+    getBookingDetails
 };

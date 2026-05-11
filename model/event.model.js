@@ -30,6 +30,12 @@ const eventSchema = new mongoose.Schema({
         required: false,
         trim: true
     },
+    price: {
+        type: Number,
+        required: false,
+        default: 0,
+        min: [0, 'Price cannot be negative']
+    },
     createdAt: {
         type: Date,
         default: Date.now
