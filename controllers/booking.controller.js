@@ -1,8 +1,39 @@
 const Booking = require('../model/booking.model');
+const Event = require('../model/event.model');
 
 const createBooking = async (req, res) => {
     try {
-        const booking = await Booking.create(req.body);
+        const { eventId, salesforceContactId, paymentStatus, paymentDate } = req.body;
+
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+
+        const amount = event.price;
+        let voucherUsed = false;
+        let voucherCode = null;
+        let discountAmount = 0;
+        let finalAmountPaid = amount;
+
+        if (event.isVoucherAvailable && event.voucherName && event.discountPercentage) {
+            voucherUsed = true;
+            voucherCode = event.voucherName;
+            discountAmount = parseFloat(((event.discountPercentage / 100) * amount).toFixed(2));
+            finalAmountPaid = parseFloat((amount - discountAmount).toFixed(2));
+        }
+
+        const booking = await Booking.create({
+            eventId,
+            salesforceContactId,
+            paymentStatus,
+            paymentDate,
+            amount,
+            voucherUsed,
+            voucherCode,
+            discountAmount,
+            finalAmountPaid,
+        });
 
         return res.status(201).json({
             message: 'Booking created successfully',

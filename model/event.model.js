@@ -36,6 +36,21 @@ const eventSchema = new mongoose.Schema({
         default: 0,
         min: [0, 'Price cannot be negative']
     },
+    isVoucherAvailable: {
+        type: Boolean,
+        default: false
+    },
+    voucherName: {
+        type: String,
+        required: false,
+        trim: true
+    },
+    discountPercentage: {
+        type: Number,
+        required: false,
+        min: [0, 'Discount cannot be negative'],
+        max: [100, 'Discount cannot exceed 100']
+    },
     createdAt: {
         type: Date,
         default: Date.now
