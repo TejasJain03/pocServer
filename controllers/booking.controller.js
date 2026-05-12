@@ -96,7 +96,8 @@ const getBookingDetails = async (req, res) => {
                 bookingCode: booking.bookingCode,
                 paymentAmount: booking.finalAmountPaid,
                 eventName: booking.eventId?.name || 'N/A',
-                eventDate: booking.eventId?.startDate || 'N/A'
+                eventDate: booking.eventId?.startDate || 'N/A',
+                contactId: booking.salesforceContactId || 'N/A'
             }
         });
     } catch (error) {
