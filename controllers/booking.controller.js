@@ -141,8 +141,48 @@ const getBookingDetails = async (req, res) => {
     }
 };
 
+const getFutureBookingsByContact = async (req, res) => {
+    try {
+        const { contactId } = req.params;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const startOfNextDay = new Date(today);
+        startOfNextDay.setDate(startOfNextDay.getDate() + 1);
+
+        const bookings = await Booking.find(
+            { salesforceContactId: contactId }
+        ).populate({
+            path: 'eventId',
+            match: { startDate: { $gte: startOfNextDay } },
+            select: 'name startDate'
+        });
+
+        const futureBookings = bookings.filter(b => b.eventId !== null);
+
+        return res.status(200).json({
+            message: 'Future bookings fetched successfully',
+            data: futureBookings.map(b => ({
+                bookingCode: b.bookingCode,
+                paymentAmount: b.finalAmountPaid,
+                paymentStatus: b.paymentStatus,
+                eventName: b.eventId.name,
+                eventDate: b.eventId.startDate
+            }))
+        });
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({
+            message: 'Failed to fetch future bookings',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     createBooking,
     updateBookingStatus,
-    getBookingDetails
+    getBookingDetails,
+    getFutureBookingsByContact
 };

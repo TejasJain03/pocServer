@@ -19,6 +19,10 @@ const run = async () => {
         { voucherName: 'FESTIVE30', discountPercentage: 30 },
     ];
 
+    // Get the IDs of the 3 random events
+    const randomEventIds = events.map(event => event._id);
+
+    // Update the 3 random events with vouchers
     for (let i = 0; i < events.length; i++) {
         const { voucherName, discountPercentage } = vouchers[i];
         await Event.findByIdAndUpdate(events[i]._id, {
@@ -28,6 +32,17 @@ const run = async () => {
         });
         console.log(`Updated event "${events[i].name}" with voucher "${voucherName}" (${discountPercentage}% off)`);
     }
+
+    // Update all other events to have no vouchers
+    await Event.updateMany(
+        { _id: { $nin: randomEventIds } },
+        {
+            isVoucherAvailable: false,
+            voucherName: null,
+            discountPercentage: null,
+        }
+    );
+    console.log('Updated remaining events to have no vouchers.');
 
     console.log('Done.');
     process.exit(0);
