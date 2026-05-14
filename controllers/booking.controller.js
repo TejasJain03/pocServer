@@ -151,7 +151,10 @@ const getFutureBookingsByContact = async (req, res) => {
         startOfNextDay.setDate(startOfNextDay.getDate() + 1);
 
         const bookings = await Booking.find(
-            { salesforceContactId: contactId }
+            {
+                salesforceContactId: contactId,
+                paymentStatus: 'Completed'
+            }
         ).populate({
             path: 'eventId',
             match: { startDate: { $gte: startOfNextDay } },
