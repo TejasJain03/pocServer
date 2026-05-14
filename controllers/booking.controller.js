@@ -78,7 +78,7 @@ const updateBookingStatus = async (req, res) => {
             { bookingCode: bookingCode.toUpperCase() },
             { paymentStatus },
             { new: true, runValidators: true }
-        );
+        ).populate('eventId', 'name startDate discountPercentage');
 
         if (!updatedBooking) {
             return res.status(404).json({
@@ -86,9 +86,18 @@ const updateBookingStatus = async (req, res) => {
             });
         }
 
+        const cancellationDate = new Date();
+
         return res.status(200).json({
             message: 'Booking status updated successfully',
-            data: updatedBooking
+            data: {
+                bookingCode: updatedBooking.bookingCode,
+                eventName: updatedBooking.eventId?.name || 'N/A',
+                eventDate: updatedBooking.eventId?.startDate || 'N/A',
+                finalAmount: updatedBooking.finalAmountPaid,
+                cancellationDate: cancellationDate,
+                discountPercentage: updatedBooking.eventId?.discountPercentage || 0
+            }
         });
     } catch (error) {
         console.log(error);
