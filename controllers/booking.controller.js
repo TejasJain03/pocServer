@@ -37,7 +37,10 @@ const createBooking = async (req, res) => {
 
         return res.status(201).json({
             message: 'Booking created successfully',
-            data: booking
+            data: {
+                ...booking.toObject(),
+                eventName: event.name
+            }
         });
     } catch (error) {
         console.log(error);
