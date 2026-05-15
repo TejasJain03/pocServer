@@ -282,6 +282,7 @@ const rescheduleBooking = async (req, res) => {
                 newSlotEvent: {
                     id: newSlotEvent._id,
                     name: newSlotEvent.name,
+                    location: newSlotEvent.location,
                     startDate: newSlotEvent.startDate,
                     price: newSlotEvent.price
                 }
