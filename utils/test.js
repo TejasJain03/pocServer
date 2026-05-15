@@ -2,53 +2,55 @@ require('dotenv').config();
 const connectDB = require('../db/connectDB');
 const Event = require('../model/event.model');
 
-const run = async () => {
-    await connectDB();
+// Vouchers to assign randomly across eligible events
+const vouchers = [
+    { voucherName: 'SUMMER10', discountPercentage: 10 },
+    { voucherName: 'EARLY20', discountPercentage: 20 },
+    { voucherName: 'AVID15', discountPercentage: 15 },
+];
 
-    // Fetch 3 random events using $sample
-    const events = await Event.aggregate([{ $sample: { size: 3 } }]);
+const assignVouchers = async () => {
+    try {
+        await connectDB();
 
-    if (events.length === 0) {
-        console.log('No events found in the database.');
-        process.exit(0);
-    }
+        // Fetch all events that do NOT have a previousSlot set
+        const events = await Event.find({ previousSlot: null });
+        console.log(`Fetched ${events.length} events with previousSlot: null`);
 
-    const vouchers = [
-        { voucherName: 'SUMMER20', discountPercentage: 20 },
-        { voucherName: 'EARLYBIRD15', discountPercentage: 15 },
-        { voucherName: 'FESTIVE30', discountPercentage: 30 },
-    ];
+        // Shuffle events and pick a random subset (roughly half) to receive vouchers
+        const shuffled = events.sort(() => Math.random() - 0.5);
+        const voucherCount = Math.max(1, Math.floor(shuffled.length / 2));
+        const toVoucher = shuffled.slice(0, voucherCount);
+        const toSkip = shuffled.slice(voucherCount);
 
-    // Get the IDs of the 3 random events
-    const randomEventIds = events.map(event => event._id);
-
-    // Update the 3 random events with vouchers
-    for (let i = 0; i < events.length; i++) {
-        const { voucherName, discountPercentage } = vouchers[i];
-        await Event.findByIdAndUpdate(events[i]._id, {
-            isVoucherAvailable: true,
-            voucherName,
-            discountPercentage,
-        });
-        console.log(`Updated event "${events[i].name}" with voucher "${voucherName}" (${discountPercentage}% off)`);
-    }
-
-    // Update all other events to have no vouchers
-    await Event.updateMany(
-        { _id: { $nin: randomEventIds } },
-        {
-            isVoucherAvailable: false,
-            voucherName: null,
-            discountPercentage: null,
+        // Assign a voucher to selected events
+        for (let i = 0; i < toVoucher.length; i++) {
+            const voucher = vouchers[i % vouchers.length];
+            await Event.findByIdAndUpdate(toVoucher[i]._id, {
+                isVoucherAvailable: true,
+                voucherName: voucher.voucherName,
+                discountPercentage: voucher.discountPercentage,
+            });
+            console.log(`  [VOUCHER] "${toVoucher[i].name}" -> ${voucher.voucherName} (${voucher.discountPercentage}% off)`);
         }
-    );
-    console.log('Updated remaining events to have no vouchers.');
 
-    console.log('Done.');
-    process.exit(0);
+        // Ensure remaining events have voucher cleared
+        for (const event of toSkip) {
+            await Event.findByIdAndUpdate(event._id, {
+                isVoucherAvailable: false,
+                voucherName: null,
+                discountPercentage: null,
+            });
+            console.log(`  [SKIP]    "${event.name}" -> no voucher`);
+        }
+
+        console.log(`\nDone. Vouchers assigned to ${toVoucher.length} / ${events.length} events.`);
+        process.exit(0);
+
+    } catch (err) {
+        console.error('Failed:', err);
+        process.exit(1);
+    }
 };
 
-run().catch((err) => {
-    console.error(err);
-    process.exit(1);
-});
+assignVouchers();

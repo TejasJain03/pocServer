@@ -195,9 +195,48 @@ const getFutureBookingsByContact = async (req, res) => {
     }
 };
 
+const getNextSlotByBooking = async (req, res) => {
+    try {
+        const { bookingCode } = req.params;
+
+        const booking = await Booking.findOne({ bookingCode: bookingCode.toUpperCase() });
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        const nextSlotEvent = await Event.findOne({ previousSlot: booking.eventId });
+        if (!nextSlotEvent) {
+            return res.status(404).json({ message: 'No future slot found for this event' });
+        }
+
+        return res.status(200).json({
+            message: 'Next slot fetched successfully',
+            data: {
+                id: nextSlotEvent._id,
+                name: nextSlotEvent.name,
+                startDate: nextSlotEvent.startDate,
+                location: nextSlotEvent.location,
+                isVirtual: nextSlotEvent.isVirtual,
+                description: nextSlotEvent.description,
+                price: nextSlotEvent.price,
+                isVoucherAvailable: nextSlotEvent.isVoucherAvailable,
+                voucherName: nextSlotEvent.voucherName,
+                discountPercentage: nextSlotEvent.discountPercentage,
+            }
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: 'Failed to fetch next slot',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     createBooking,
     updateBookingStatus,
     getBookingDetails,
-    getFutureBookingsByContact
+    getFutureBookingsByContact,
+    getNextSlotByBooking
 };

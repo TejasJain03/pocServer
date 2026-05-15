@@ -51,6 +51,11 @@ const eventSchema = new mongoose.Schema({
         min: [0, 'Discount cannot be negative'],
         max: [100, 'Discount cannot exceed 100']
     },
+    previousSlot: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Event',
+        required: false
+    },
     createdAt: {
         type: Date,
         default: Date.now
