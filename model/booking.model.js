@@ -15,7 +15,7 @@ const bookingSchema = new mongoose.Schema(
         },
         paymentStatus: {
             type: String,
-            enum: ['Completed', 'Failed', 'Refunded'],
+            enum: ['Completed', 'Failed', 'Refunded', 'Rescheduled'],
             default: 'Completed',
             required: true
         },

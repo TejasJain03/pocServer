@@ -233,10 +233,82 @@ const getNextSlotByBooking = async (req, res) => {
     }
 };
 
+const rescheduleBooking = async (req, res) => {
+    try {
+        const { bookingCode, newSlotEventId } = req.body;
+
+        if (!bookingCode || !newSlotEventId) {
+            return res.status(400).json({
+                message: 'bookingCode and newSlotEventId are required'
+            });
+        }
+
+        const booking = await Booking.findOne({ bookingCode: bookingCode.toUpperCase() });
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        const newSlotEvent = await Event.findById(newSlotEventId);
+        if (!newSlotEvent) {
+            return res.status(404).json({ message: 'New slot event not found' });
+        }
+
+        const bookingData = booking.toObject();
+        const { _id, bookingCode: existingBookingCode, createdAt, updatedAt, __v, ...copyableFields } = bookingData;
+
+        booking.paymentStatus = 'Rescheduled';
+        await booking.save();
+
+        const newBooking = await Booking.create({
+            ...copyableFields,
+            eventId: newSlotEventId
+        });
+
+        return res.status(201).json({
+            message: 'Booking rescheduled successfully',
+            data: {
+                newBooking: {
+                    bookingCode: newBooking.bookingCode,
+                    eventId: newBooking.eventId,
+                    salesforceContactId: newBooking.salesforceContactId,
+                    paymentStatus: newBooking.paymentStatus,
+                    amount: newBooking.amount,
+                    voucherUsed: newBooking.voucherUsed,
+                    voucherCode: newBooking.voucherCode,
+                    discountAmount: newBooking.discountAmount,
+                    finalAmountPaid: newBooking.finalAmountPaid,
+                    paymentDate: newBooking.paymentDate
+                },
+                newSlotEvent: {
+                    id: newSlotEvent._id,
+                    name: newSlotEvent.name,
+                    startDate: newSlotEvent.startDate,
+                    price: newSlotEvent.price
+                }
+            }
+        });
+    } catch (error) {
+        console.log(error);
+
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                message: 'Validation failed',
+                error: error.message
+            });
+        }
+
+        return res.status(500).json({
+            message: 'Failed to reschedule booking',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     createBooking,
     updateBookingStatus,
     getBookingDetails,
     getFutureBookingsByContact,
-    getNextSlotByBooking
+    getNextSlotByBooking,
+    rescheduleBooking
 };
