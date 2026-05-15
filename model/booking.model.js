@@ -13,6 +13,12 @@ const bookingSchema = new mongoose.Schema(
             required: [true, 'Salesforce contact Id is required'],
             trim: true
         },
+        contactEmail: {
+            type: String,
+            trim: true,
+            lowercase: true,
+            default: null
+        },
         paymentStatus: {
             type: String,
             enum: ['Completed', 'Failed', 'Refunded', 'Rescheduled'],

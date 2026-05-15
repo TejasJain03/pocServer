@@ -3,7 +3,7 @@ const Event = require('../model/event.model');
 
 const createBooking = async (req, res) => {
     try {
-        const { eventId, salesforceContactId, paymentStatus, paymentDate } = req.body;
+        const { eventId, salesforceContactId, contactEmail, paymentStatus, paymentDate } = req.body;
 
         const event = await Event.findById(eventId);
         if (!event) {
@@ -26,6 +26,7 @@ const createBooking = async (req, res) => {
         const booking = await Booking.create({
             eventId,
             salesforceContactId,
+            contactEmail,
             paymentStatus,
             paymentDate,
             amount,
@@ -271,6 +272,7 @@ const rescheduleBooking = async (req, res) => {
                     bookingCode: newBooking.bookingCode,
                     eventId: newBooking.eventId,
                     salesforceContactId: newBooking.salesforceContactId,
+                    contactEmail: newBooking.contactEmail,
                     paymentStatus: newBooking.paymentStatus,
                     amount: newBooking.amount,
                     voucherUsed: newBooking.voucherUsed,

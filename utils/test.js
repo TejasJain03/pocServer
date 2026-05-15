@@ -1,92 +1,35 @@
 require('dotenv').config();
 const connectDB = require('../db/connectDB');
-const Event = require('../model/event.model');
+const mongoose = require('mongoose');
+const Booking = require('../model/booking.model');
 
-// Vouchers to assign randomly across eligible events
-const vouchers = [
-    { voucherName: 'SUMMER10', discountPercentage: 10 },
-    { voucherName: 'EARLY20', discountPercentage: 20 },
-    { voucherName: 'AVID15', discountPercentage: 15 },
-];
+const TARGET_BOOKING_ID = '6a04b4af48614650198fe4bf';
 
-const assignVouchers = async () => {
+const deleteAllBookingsExceptTarget = async () => {
     try {
         await connectDB();
 
-        // Fetch all events that do NOT have a previousSlot set
-        const events = await Event.find({ previousSlot: null });
-        console.log(`Fetched ${events.length} events with previousSlot: null`);
-
-        // Shuffle events and pick a random subset (roughly half) to receive vouchers
-        const shuffled = events.sort(() => Math.random() - 0.5);
-        const voucherCount = Math.max(1, Math.floor(shuffled.length / 2));
-        const toVoucher = shuffled.slice(0, voucherCount);
-        const toSkip = shuffled.slice(voucherCount);
-
-        // Assign a voucher to selected events
-        for (let i = 0; i < toVoucher.length; i++) {
-            const voucher = vouchers[i % vouchers.length];
-            await Event.findByIdAndUpdate(toVoucher[i]._id, {
-                isVoucherAvailable: true,
-                voucherName: voucher.voucherName,
-                discountPercentage: voucher.discountPercentage,
-            });
-            console.log(`  [VOUCHER] "${toVoucher[i].name}" -> ${voucher.voucherName} (${voucher.discountPercentage}% off)`);
+        if (!mongoose.Types.ObjectId.isValid(TARGET_BOOKING_ID)) {
+            throw new Error(`Invalid booking id: ${TARGET_BOOKING_ID}`);
         }
 
-        // Ensure remaining events have voucher cleared
-        for (const event of toSkip) {
-            await Event.findByIdAndUpdate(event._id, {
-                isVoucherAvailable: false,
-                voucherName: null,
-                discountPercentage: null,
-            });
-            console.log(`  [SKIP]    "${event.name}" -> no voucher`);
-        }
+        const targetObjectId = new mongoose.Types.ObjectId(TARGET_BOOKING_ID);
 
-        console.log(`\nDone. Vouchers assigned to ${toVoucher.length} / ${events.length} events.`);
+        const totalBefore = await Booking.countDocuments();
+        const targetExists = await Booking.exists({ _id: targetObjectId });
 
-    } catch (err) {
-        console.error('Failed:', err);
-        throw err;
-    }
-};
-
-const createFutureSlot = async () => {
-    try {
-        // Fetch all events that do NOT have a previousSlot set
-        const eventsWithoutPrevious = await Event.find({ previousSlot: null });
-
-        if (eventsWithoutPrevious.length === 0) {
-            console.log('No events available to copy.');
+        if (!targetExists) {
+            console.log(`Target booking ${TARGET_BOOKING_ID} not found. No deletions performed.`);
             return;
         }
 
-        // Pick a random event
-        const randomEvent = eventsWithoutPrevious[Math.floor(Math.random() * eventsWithoutPrevious.length)];
-        console.log(`\nSelected random event: "${randomEvent.name}" (ID: ${randomEvent._id})`);
+        const deleteResult = await Booking.deleteMany({ _id: { $ne: targetObjectId } });
+        const totalAfter = await Booking.countDocuments();
 
-        // Create a copy with a future date (7 days later)
-        const futureDate = new Date(randomEvent.startDate);
-        futureDate.setDate(futureDate.getDate() + 7);
-
-        const futureSlot = await Event.create({
-            name: randomEvent.name,
-            startDate: futureDate,
-            time: randomEvent.time,
-            location: randomEvent.location,
-            isVirtual: randomEvent.isVirtual,
-            description: randomEvent.description,
-            price: randomEvent.price,
-            isVoucherAvailable: randomEvent.isVoucherAvailable,
-            voucherName: randomEvent.voucherName,
-            discountPercentage: randomEvent.discountPercentage,
-            previousSlot: randomEvent._id
-        });
-
-        console.log(`Created future slot: "${futureSlot.name}" on ${futureSlot.startDate}`);
-        console.log(`Future slot previousSlot points to: ${futureSlot.previousSlot}`);
-
+        console.log(`Total bookings before: ${totalBefore}`);
+        console.log(`Deleted bookings: ${deleteResult.deletedCount}`);
+        console.log(`Total bookings after: ${totalAfter}`);
+        console.log(`Kept booking id: ${TARGET_BOOKING_ID}`);
     } catch (err) {
         console.error('Failed:', err);
         throw err;
@@ -95,8 +38,7 @@ const createFutureSlot = async () => {
 
 const main = async () => {
     try {
-        await connectDB();
-        await createFutureSlot();
+        await deleteAllBookingsExceptTarget();
         console.log('\nAll tasks completed successfully.');
         process.exit(0);
     } catch (err) {
