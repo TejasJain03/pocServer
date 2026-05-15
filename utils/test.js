@@ -45,12 +45,64 @@ const assignVouchers = async () => {
         }
 
         console.log(`\nDone. Vouchers assigned to ${toVoucher.length} / ${events.length} events.`);
-        process.exit(0);
 
     } catch (err) {
         console.error('Failed:', err);
+        throw err;
+    }
+};
+
+const createFutureSlot = async () => {
+    try {
+        // Fetch all events that do NOT have a previousSlot set
+        const eventsWithoutPrevious = await Event.find({ previousSlot: null });
+
+        if (eventsWithoutPrevious.length === 0) {
+            console.log('No events available to copy.');
+            return;
+        }
+
+        // Pick a random event
+        const randomEvent = eventsWithoutPrevious[Math.floor(Math.random() * eventsWithoutPrevious.length)];
+        console.log(`\nSelected random event: "${randomEvent.name}" (ID: ${randomEvent._id})`);
+
+        // Create a copy with a future date (7 days later)
+        const futureDate = new Date(randomEvent.startDate);
+        futureDate.setDate(futureDate.getDate() + 7);
+
+        const futureSlot = await Event.create({
+            name: randomEvent.name,
+            startDate: futureDate,
+            time: randomEvent.time,
+            location: randomEvent.location,
+            isVirtual: randomEvent.isVirtual,
+            description: randomEvent.description,
+            price: randomEvent.price,
+            isVoucherAvailable: randomEvent.isVoucherAvailable,
+            voucherName: randomEvent.voucherName,
+            discountPercentage: randomEvent.discountPercentage,
+            previousSlot: randomEvent._id
+        });
+
+        console.log(`Created future slot: "${futureSlot.name}" on ${futureSlot.startDate}`);
+        console.log(`Future slot previousSlot points to: ${futureSlot.previousSlot}`);
+
+    } catch (err) {
+        console.error('Failed:', err);
+        throw err;
+    }
+};
+
+const main = async () => {
+    try {
+        await connectDB();
+        await createFutureSlot();
+        console.log('\nAll tasks completed successfully.');
+        process.exit(0);
+    } catch (err) {
+        console.error('Error:', err);
         process.exit(1);
     }
 };
 
-assignVouchers();
+main();
